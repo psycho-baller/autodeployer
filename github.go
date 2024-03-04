@@ -155,7 +155,7 @@ func bumpDeployment(ctx context.Context, client *github.Client, newTag string) s
 		Message: github.String(fmt.Sprintf("Image tag bumped to %s using autodeployer(tm)", newTag)),
 		Content: []byte(newContentBase64),
 		SHA:     fileContent.SHA,
-		branch:  &newBranchName,
+		Branch:  &newBranchName,
 	}
 	_, _, err = client.Repositories.UpdateFile(ctx, owner, deploymentsRepo, deploymentYAMLPath, data)
 	if err != nil {
