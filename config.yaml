@@ -1,0 +1,16 @@
+settings:
+  owner: psycho-baller
+  workflow_retry_limit: 100
+  workflow_retry_wait_seconds: 10
+
+deployment_repos:
+  deployment1:
+    repo1:
+      staging-config-path: staging-config.yaml
+      production-config-path: production-config.yaml
+      config-image-url: psycho-baller/config-image
+  deployment2:
+    repo2:
+      staging-config-path: staging-config.yaml
+      production-config-path: production-config.yaml
+      config-image-url: psycho-baller/config-image
