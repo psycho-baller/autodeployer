@@ -77,7 +77,7 @@ func main() {
 	owner = config.Settings["owner"]
 	workflowRetryLimit, _ = strconv.Atoi(config.Settings["workflow_retry_limit"])
 	workflowRetryWaitSeconds, _ = strconv.Atoi(config.Settings["workflow_retry_wait_seconds"])
-	deploymentsRepo = getDeploymentRepo(repo, config.DeploymentRepos)
+	deploymentsRepo = GetDeploymentRepo(repo, config.DeploymentRepos)
 	if deploymentsRepo == "" {
 		fmt.Printf("Deployment repo not found for %s\n", repo)
 		os.Exit(1)
@@ -95,31 +95,17 @@ func main() {
 
 	// Get new release tag
 	newTag := getNewReleaseTag(ctx, client)
-	fmt.Println(newTag)
-	// createNewRelease(ctx, client, newTag)
-	// waitForWorkflow(ctx, client)
-	// bumpDeployment(ctx, client, newTag)
-
+	createNewRelease(ctx, client, newTag)
+	waitForWorkflow(ctx, client)
+	newBranch := bumpDeployment(ctx, client, newTag)
+	triggerWorkflow(ctx, client, newBranch)
 	// Send notification
 	fmt.Println("Deployment Successful! Autodeployer terminating...")
 }
 
-// getDeploymentRepo retrieves the deployment repo from `repoName` argument
-func getDeploymentRepo(repoName string, deploymentRepos map[string]map[string]map[string]string) string {
-	for deploymentRepo, repos := range deploymentRepos {
-		for repo := range repos {
-			if repo == repoName {
-				fmt.Printf("Found deployment repo: %s\n", deploymentRepo)
-				return deploymentRepo
-			}
-		}
-	}
-	return ""
-}
-
 // getNewReleaseTag determines the new release tag
 func getNewReleaseTag(ctx context.Context, client *github.Client) string {
-	fmt.Println("\n[1/4] Determining new release tag...")
+	fmt.Println("\n[1/5] Determining new release tag...")
 	opt := &github.ListOptions{Page: 1, PerPage: 1}
 	releases, _, err := client.Repositories.ListReleases(ctx, owner, repo, opt)
 	if err != nil {
@@ -148,7 +134,7 @@ func getNewReleaseTag(ctx context.Context, client *github.Client) string {
 
 // createNewRelease creates a new release
 func createNewRelease(ctx context.Context, client *github.Client, newTag string) {
-	fmt.Println("[2/4] Creating new release...")
+	fmt.Println("[2/5] Creating new release...")
 	release := &github.RepositoryRelease{
 		TagName:         github.String(newTag),
 		TargetCommitish: github.String(branch),
@@ -168,7 +154,7 @@ func createNewRelease(ctx context.Context, client *github.Client, newTag string)
 
 // waitForWorkflow waits for the image build workflow to complete
 func waitForWorkflow(ctx context.Context, client *github.Client) {
-	fmt.Println("[3/4] Waiting for workflow completion...")
+	fmt.Println("[3/5] Waiting for workflow completion...")
 	workflowComplete := false
 	for i := 0; i < workflowRetryLimit; i++ {
 		workflows, _, err := client.Actions.ListRepositoryWorkflowRuns(ctx, owner, repo, nil)
@@ -194,8 +180,8 @@ func waitForWorkflow(ctx context.Context, client *github.Client) {
 }
 
 // bumpDeployment bumps the image version in the deployment repository
-func bumpDeployment(ctx context.Context, client *github.Client, newTag string) {
-	fmt.Printf("[4/4] Bumping image version in %s...\n", deploymentsRepo)
+func bumpDeployment(ctx context.Context, client *github.Client, newTag string) string {
+	fmt.Printf("[4/5] Bumping image version in %s...\n", deploymentsRepo)
 
 	// 1. Get commit hash of master branch
 	fmt.Println("- Reading commit hash of master branch...")
@@ -259,4 +245,28 @@ func bumpDeployment(ctx context.Context, client *github.Client, newTag string) {
 		os.Exit(1)
 	}
 	fmt.Printf("Successfully bumped image version in %s!\n", configPath)
+
+	return newBranchName
+}
+
+// triggerWorkflow triggers a workflow on the specified branch in the repository
+func triggerWorkflow(ctx context.Context, client *github.Client, branchName string) {
+	fmt.Printf("[5/5] Triggering 'deploy' workflow on branch %s...\n", branchName)
+
+	// Prepare payload for workflow dispatch event
+	// eventPayload := map[string]interface{}{
+	// 	"ref": branchName,
+	// 	"inputs": map[string]interface{}{
+	// 		"workflow": "deploy",
+	// 	},
+	// }
+
+	// Trigger the workflow dispatch event
+	// _, _, err := client.Dispatches.CreateDispatchEvent(ctx, owner, repo, eventPayload)
+	// if err != nil {
+	// 	fmt.Printf("Failed to trigger 'deploy' workflow: %s\n", err)
+	// 	return
+	// }
+
+	fmt.Println("Successfully triggered 'deploy' workflow!")
 }
