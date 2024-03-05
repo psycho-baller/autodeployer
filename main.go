@@ -91,11 +91,12 @@ func main() {
 	client := github.NewClient(tc)
 
 	// Get new release tag
-	newTag := "1.7.5-rc1"//getNewReleaseTag(ctx, client)
-	// fmt.Println("New release tag:", newTag)
-	// createNewRelease(ctx, client, newTag)
+	oldTag, newTag := getOldAndNewReleaseTag(ctx, client)
+	fmt.Println("Old release tag:", oldTag)
+	fmt.Println("New release tag:", newTag)
+	createNewRelease(ctx, client, newTag)
 	// waitForWorkflow(ctx, client)
-	newBranch := bumpDeployment(ctx, client, newTag)
+	newBranch := bumpDeployment(ctx, client, oldTag, newTag)
 	fmt.Println("New branch:", newBranch)
 	triggerWorkflow(ctx, client, newBranch)
 	// Send notification

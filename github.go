@@ -10,11 +10,10 @@ import (
 	"time"
 
 	"github.com/google/go-github/v39/github"
-	"gopkg.in/yaml.v2"
 )
 
 // getNewReleaseTag determines the new release tag
-func getNewReleaseTag(ctx context.Context, client *github.Client) string {
+func getOldAndNewReleaseTag(ctx context.Context, client *github.Client) (string, string) {
 	fmt.Println("\n[1/5] Determining new release tag...")
 	opt := &github.ListOptions{Page: 1, PerPage: 1}
 	releases, _, err := client.Repositories.ListReleases(ctx, owner, repo, opt)
@@ -24,7 +23,8 @@ func getNewReleaseTag(ctx context.Context, client *github.Client) string {
 	}
 
 	rawTag := strings.Split(releases[0].GetTagName(), "-rc")
-	oldVersion := strings.Split(rawTag[0], ".")
+	oldTag := rawTag[0]
+	oldVersion := strings.Split(oldTag, ".")
 	if len(rawTag) == 1 {
 		lastVersion, _ := strconv.Atoi(oldVersion[len(oldVersion)-1])
 		oldVersion[len(oldVersion)-1] = strconv.Itoa(lastVersion + 1)
@@ -38,8 +38,7 @@ func getNewReleaseTag(ctx context.Context, client *github.Client) string {
 			newTag += "-rc" + strconv.Itoa(lastRC+1)
 		}
 	}
-	fmt.Printf("New release tag: %s\n", newTag)
-	return newTag
+	return oldTag, newTag
 }
 
 // createNewRelease creates a new release
@@ -58,11 +57,12 @@ func createNewRelease(ctx context.Context, client *github.Client, newTag string)
 		fmt.Printf("Failed to create release: %s\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Release %s was successfully created.\nWaiting 10 seconds before checking the image build workflow...\n", newTag)
-	time.Sleep(10 * time.Second)
+	fmt.Printf("Release %s was successfully created.\n", newTag)
+	// fmt.Println("Waiting 10 seconds before checking the image build workflow...\n")
+	// time.Sleep(10 * time.Second)
 }
 
-// waitForWorkflow waits for the image build workflow to complete
+// waits for the image build workflow to complete
 func waitForWorkflow(ctx context.Context, client *github.Client) {
 	fmt.Println("[3/5] Waiting for workflow completion...")
 	workflowComplete := false
@@ -90,7 +90,7 @@ func waitForWorkflow(ctx context.Context, client *github.Client) {
 }
 
 // bumps the image version in the deployment repository
-func bumpDeployment(ctx context.Context, client *github.Client, newTag string) string {
+func bumpDeployment(ctx context.Context, client *github.Client, oldTag string, newTag string) string {
 	fmt.Printf("[4/5] Bumping image version in %s...\n", deploymentsRepo)
 
 	// 0. Check if the deployment repo exists and get the default branch
@@ -135,34 +135,23 @@ func bumpDeployment(ctx context.Context, client *github.Client, newTag string) s
 		os.Exit(1)
 	}
 
-	// 4. Generate new content with updated tag and push to new branch
-	fmt.Printf("- Updating image tag in %s...\n", configPath)
-	var yamlData map[string]interface{}
-	err = yaml.Unmarshal(decodedContent, &yamlData)
-	if err != nil {
-		fmt.Println("Failed to unmarshal YAML content:", err)
-		os.Exit(1)
-	}
-	yamlData["image"] = map[string]string{"repository": configImageURL, "tag": newTag}
-	newFileContent, err := yaml.Marshal(yamlData)
-	if err != nil {
-		fmt.Println("Failed to marshal YAML content:", err)
-		os.Exit(1)
-	}
+	// 4. Replace old tag with new tag in the content
+	contentStr := string(decodedContent)
+	newContentStr := strings.Replace(contentStr, oldTag, newTag, -1)
 
-	newContentBase64 := base64.StdEncoding.EncodeToString(newFileContent)
+	// 5. Push the updated content to the new branch
 	data := &github.RepositoryContentFileOptions{
-		Message: github.String(fmt.Sprintf("Image tag bumped to %s using autodeployer(tm)", newTag)),
-		Content: []byte(newContentBase64),
-		SHA:     fileContent.SHA,
-		Branch:  &newBranchName,
+	    Message: github.String(fmt.Sprintf("Image tag bumped to %s using autodeployer(tm)", newTag)),
+	    Content: []byte(newContentStr),
+	    SHA:     fileContent.SHA,
+	    Branch:  &newBranchName,
 	}
 	_, _, err = client.Repositories.UpdateFile(ctx, owner, deploymentsRepo, deploymentYAMLPath, data)
 	if err != nil {
-		fmt.Printf("Failed to update the file %s: %s\n", configPath, err)
-		os.Exit(1)
+	    fmt.Printf("Failed to update the file %s: %s\n", deploymentYAMLPath, err)
+	    os.Exit(1)
 	}
-	fmt.Printf("Successfully bumped image version in %s!\n", configPath)
+	fmt.Printf("Successfully bumped image version in %s!\n", deploymentYAMLPath)
 
 	return newBranchName
 }
