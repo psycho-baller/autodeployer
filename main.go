@@ -91,7 +91,11 @@ func main() {
 	client := github.NewClient(tc)
 
 	// Get new release tag
-	oldTag, newTag := getOldAndNewReleaseTag(ctx, client)
+	oldTag, newTag, err := getOldAndNewReleaseTag(ctx, client, "")
+	if err != nil {
+		fmt.Println("Error getting old and new release tag:", err)
+		os.Exit(1)
+	}
 	fmt.Println("Old release tag:", oldTag)
 	fmt.Println("New release tag:", newTag)
 	createNewRelease(ctx, client, newTag)

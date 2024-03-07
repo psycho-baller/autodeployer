@@ -12,34 +12,102 @@ import (
 	"github.com/google/go-github/v39/github"
 )
 
+type VersionChangeType string
+const (
+	Minor    VersionChangeType = "minor"
+	Major    VersionChangeType = "major"
+	Breaking VersionChangeType = "breaking"
+)
+
+func getLatestTagFromBranch(ctx context.Context, client *github.Client, owner string, repo string, branch string, tags []*github.RepositoryTag) (*github.RepositoryTag, error) {
+	// Get the branch
+	gitBranch, _, err := client.Repositories.GetBranch(ctx, owner, repo, branch, false)
+	if err != nil {
+			return nil, err
+	}
+
+	// Get the commit SHA from the branch
+	commitSHA := *gitBranch.Commit.SHA
+
+	// Find the tag that matches the commit SHA
+	for _, tag := range tags {
+			if *tag.Commit.SHA == commitSHA {
+					return tag, nil
+			}
+	}
+	// No tag found for the branch (which means it's their first deployment for the branch)
+	return nil, nil
+}
+
+func getNewTag(oldTag string, versionChangeType VersionChangeType) (string, error) {
+	if versionChangeType == Minor { // Minor and rc changes are the same (just increment the last number by 1)
+		// get the last number of the tag and increment it by 1
+		lastVersion := string(oldTag[len(oldTag)-1])
+		minorVersion, err := strconv.Atoi(lastVersion)
+		if err != nil {
+				return "", fmt.Errorf("error when converting last version to int: %s", err)
+		}
+		minorVersion++
+		newTag := fmt.Sprintf("%s%d", oldTag[:len(oldTag)-1], minorVersion)
+		isFirstRC := !strings.Contains(oldTag, "-rc")
+		if isFirstRC {
+			newTag += "-rc1"
+		}
+		return newTag, nil
+	}
+
+	return "", fmt.Errorf("major and breaking changes have not been implemented") // Add a return statement with an error message to fix the "missing return" problem
+}
+
 // getNewReleaseTag determines the new release tag
-func getOldAndNewReleaseTag(ctx context.Context, client *github.Client) (string, string) {
+func getOldAndNewReleaseTag(ctx context.Context, client *github.Client, versionChageType VersionChangeType) (string, string, error) {
+	// set default params if not provided
+	if versionChageType == "" {
+		versionChageType = Minor
+	}
 	fmt.Println("\n[1/5] Determining new release tag...")
 	opt := &github.ListOptions{Page: 1, PerPage: 1}
-	releases, _, err := client.Repositories.ListReleases(ctx, owner, repo, opt)
+	
+	tags, _, err := client.Repositories.ListTags(ctx, owner, repo, opt)
 	if err != nil {
 		fmt.Printf("Error when fetching releases: %s\n", err)
 		os.Exit(1)
 	}
+	latestTagFromBranch, err := getLatestTagFromBranch(ctx, client, owner, repo, branch, tags)
+	if err != nil {
+		fmt.Printf("Error when fetching latest tag: %s\n", err)
+		os.Exit(1)
+	}
+	oldTag := tags[0].GetName()
+	isFirstRC := latestTagFromBranch == nil
+	if isFirstRC {
+		fmt.Println("No tags found for the branch. Assuming this is the first deployment attempt.")
+		oldTag = latestTagFromBranch.GetName()
+	}
+	newTag, err := getNewTag(oldTag, versionChageType)
+	if err != nil {
+			return oldTag, "", err
+	}
 
-	rawTag := strings.Split(releases[0].GetTagName(), "-rc")
-	oldTag := rawTag[0]
-	oldVersion := strings.Split(oldTag, ".")
-	if len(rawTag) == 1 {
-		lastVersion, _ := strconv.Atoi(oldVersion[len(oldVersion)-1])
-		oldVersion[len(oldVersion)-1] = strconv.Itoa(lastVersion + 1)
-	}
-	newTag := strings.Join(oldVersion, ".")
-	if isPrerelease {
-		if len(rawTag) == 1 {
-			newTag += "-rc1"
-		} else {
-			lastRC, _ := strconv.Atoi(rawTag[1])
-			newTag += "-rc" + strconv.Itoa(lastRC+1)
-		}
-	}
-	return oldTag, newTag
+	return oldTag, newTag, nil
 }
+	// rawTag := strings.Split(releases[0].GetTagName(), "-rc")
+	// oldTag := rawTag[0]
+	// oldVersion := strings.Split(oldTag, ".")
+	// if len(rawTag) == 1 {
+	// 	lastVersion, _ := strconv.Atoi(oldVersion[len(oldVersion)-1])
+	// 	oldVersion[len(oldVersion)-1] = strconv.Itoa(lastVersion + 1)
+	// }
+	// newTag := strings.Join(oldVersion, ".")
+	// if isPrerelease {
+	// 	if len(rawTag) == 1 {
+	// 		newTag += "-rc1"
+	// 	} else {
+	// 		lastRC, _ := strconv.Atoi(rawTag[1])
+	// 		newTag += "-rc" + strconv.Itoa(lastRC+1)
+	// 	}
+	// }
+	// return oldTag, newTag
 
 // createNewRelease creates a new release
 func createNewRelease(ctx context.Context, client *github.Client, newTag string) {
