@@ -171,7 +171,7 @@ func bumpDeployment(ctx context.Context, client *github.Client, oldTag string, n
 
 	// 1. Get commit hash of the default branch
 	fmt.Println("- Reading commit hash of default branch...")
-	ref, _, err := client.Git.GetRef(ctx, owner, deploymentsRepo, "heads/"+defaultBranch)
+	ref, _, err := client.Git.GetRef(ctx, owner, deploymentsRepo, "refs/heads/"+defaultBranch)
 	if err != nil {
 		fmt.Println("Failed to fetch master branch:", err)
 		os.Exit(1)
@@ -179,20 +179,27 @@ func bumpDeployment(ctx context.Context, client *github.Client, oldTag string, n
 	defaultBranchSHA := ref.Object.GetSHA()
 
 	// 2. Create new branch in deployment repo
-	newBranchName := fmt.Sprintf("refs/heads/%s-bump-%s", repo, newTag)
+	newBranchNameRef := fmt.Sprintf("refs/heads/%s-bump", repo)
 	newBranch := &github.Reference{
-		Ref:    &newBranchName,
+		Ref:    &newBranchNameRef,
 		Object: &github.GitObject{SHA: &defaultBranchSHA},
 	}
-	_, _, err = client.Git.CreateRef(ctx, owner, deploymentsRepo, newBranch)
+	_, _, err = client.Git.GetRef(ctx, owner, deploymentsRepo, newBranchNameRef)
 	if err != nil {
-		fmt.Printf("Failed to create new branch %s: %s\n", newBranchName, err)
-		os.Exit(1)
+    // Branch does not exist, create it
+    _, _, err = client.Git.CreateRef(ctx, owner, deploymentsRepo, newBranch)
+    if err != nil {
+			fmt.Printf("Failed to create new branch %s: %s\n", newBranchNameRef, err)
+			os.Exit(1)
+    }
+	} else {
+    fmt.Printf("Branch %s already exists\n", newBranchNameRef)
 	}
 
 	// 3. Get deployment YAML file from the repository
 	deploymentYAMLPath := configPath
-	fileContent, _, _, err := client.Repositories.GetContents(ctx, owner, deploymentsRepo, deploymentYAMLPath, nil)
+	options := &github.RepositoryContentGetOptions{Ref: newBranchNameRef}
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, owner, deploymentsRepo, deploymentYAMLPath, options)
 	if err != nil {
 		fmt.Printf("Failed to get file contents: %s\n", err)
 		os.Exit(1)
@@ -209,19 +216,19 @@ func bumpDeployment(ctx context.Context, client *github.Client, oldTag string, n
 
 	// 5. Push the updated content to the new branch
 	data := &github.RepositoryContentFileOptions{
-	    Message: github.String(fmt.Sprintf("Image tag bumped to %s using autodeployer(tm)", newTag)),
-	    Content: []byte(newContentStr),
-	    SHA:     fileContent.SHA,
-	    Branch:  &newBranchName,
+		Message: github.String(fmt.Sprintf("Image tag bumped to %s using autodeployer", newTag)),
+		Content: []byte(newContentStr),
+		SHA:     fileContent.SHA,
+		Branch:  &newBranchNameRef,
 	}
 	_, _, err = client.Repositories.UpdateFile(ctx, owner, deploymentsRepo, deploymentYAMLPath, data)
 	if err != nil {
-	    fmt.Printf("Failed to update the file %s: %s\n", deploymentYAMLPath, err)
-	    os.Exit(1)
+		fmt.Printf("Failed to update the file %s: %s\n", deploymentYAMLPath, err)
+		os.Exit(1)
 	}
 	fmt.Printf("Successfully bumped image version in %s!\n", deploymentYAMLPath)
 
-	return newBranchName
+	return newBranchNameRef
 }
 
 // triggerWorkflow triggers a workflow on the specified branch in the repository
