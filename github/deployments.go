@@ -60,7 +60,13 @@ func BumpDeployment(oldTag string, newTag string) string {
 
 	// 2. Create new branch in deployment repo
 	futureTag := strings.Split(newTag, "-rc")[0]
-	newBranchNameRef := fmt.Sprintf("refs/heads/%s-bump-%s", Globals.Repo, futureTag)
+	// TODO: add an option to enable/disable username in the branch name
+	username, err := getUsername()
+	if err != nil {
+		fmt.Println("Failed to get username, will use '' as the username for the new deployment branch")
+		username = ""
+	}
+	newBranchNameRef := fmt.Sprintf("refs/heads/%s-%s-bump-%s", username, Globals.Repo, futureTag)
 	newBranch := &github.Reference{
 		Ref:    &newBranchNameRef,
 		Object: &github.GitObject{SHA: &defaultBranchSHA},
