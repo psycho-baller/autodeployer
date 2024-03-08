@@ -39,6 +39,7 @@ func main() {
 	branch = os.Args[2]
 
 	token := getGHECToken()
+
 	// Parse config.yaml
 	configData, err := os.ReadFile("config.yaml")
 	if err != nil {

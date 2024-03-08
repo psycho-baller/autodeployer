@@ -1,6 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+)
 
 // GetDeploymentRepo retrieves the deployment repo from `repoName` argument
 func GetDeploymentRepo(repoName string, deploymentRepos map[string]map[string]map[string]string) string {
@@ -13,4 +18,15 @@ func GetDeploymentRepo(repoName string, deploymentRepos map[string]map[string]ma
 		}
 	}
 	return ""
+}
+
+func getGHECToken() string {
+	cmd := exec.Command("op", "read", "op://Private/GHEC_TOKEN/token")
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println("Error fetching GHEC token from 1Password:", err)
+		os.Exit(1)
+	}
+	token := strings.TrimSpace(string(output))
+	return token
 }
