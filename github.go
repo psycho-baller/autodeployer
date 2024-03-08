@@ -231,24 +231,21 @@ func bumpDeployment(ctx context.Context, client *github.Client, oldTag string, n
 	return newBranchNameRef
 }
 
-// triggerWorkflow triggers a workflow on the specified branch in the repository
-func triggerWorkflow(ctx context.Context, client *github.Client, branchName string) {
-	fmt.Printf("[5/5] Triggering 'deploy' workflow on branch %s...\n", branchName)
+// triggers a workflow on the specified branch in the repository
+func triggerWorkflow(ctx context.Context, client *github.Client, branchNameRef string, workflowName string) {
+	fmt.Printf("[5/5] Triggering '%s' workflow on branch %s...\n", workflowName, branchNameRef)
 
 	// Prepare payload for workflow dispatch event
-	// eventPayload := map[string]interface{}{
-	// 	"ref": branchName,
-	// 	"inputs": map[string]interface{}{
-	// 		"workflow": "deploy",
-	// 	},
-	// }
+	eventPayload := github.CreateWorkflowDispatchEventRequest{
+		Ref: branchNameRef,
+	}
 
 	// Trigger the workflow dispatch event
-	// _, _, err := client.Dispatches.CreateDispatchEvent(ctx, owner, repo, eventPayload)`
-	// if err != nil {
-	// 	fmt.Printf("Failed to trigger 'deploy' workflow: %s\n", err)
-	// 	return
-	// }
+	_, err := client.Actions.CreateWorkflowDispatchEventByFileName(ctx, owner, deploymentsRepo, workflowName, eventPayload)
+	if err != nil {
+		fmt.Printf("Failed to trigger '%s' workflow: %s\n", workflowName, err)
+		return
+	}
 
 	fmt.Println("Successfully triggered 'deploy' workflow!")
 }

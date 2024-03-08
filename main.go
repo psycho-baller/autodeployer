@@ -81,9 +81,8 @@ func main() {
 	fmt.Println("New release tag:", newTag)
 	createNewRelease(ctx, client, newTag)
 	// waitForWorkflow(ctx, client)
-	newBranch := bumpDeployment(ctx, client, oldTag, newTag)
-	fmt.Println("New branch:", newBranch)
-	triggerWorkflow(ctx, client, newBranch)
+	newBranchRef := bumpDeployment(ctx, client, oldTag, newTag)
+	triggerWorkflow(ctx, client, newBranchRef, "deploy.yaml")
 	// Send notification
 	fmt.Println("Deployment Successful! Autodeployer terminating...")
 }
