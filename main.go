@@ -17,13 +17,6 @@ type Configuration struct {
 	DeploymentRepos map[string]map[string]map[string]string `yaml:"deployment_repos"`
 }
 
-// Auth struct for holding token from auth.yaml
-type Auth struct {
-	Auth struct {
-		Token string `yaml:"token"`
-	} `yaml:"auth"`
-}
-
 var (
 	owner                    string
 	workflowRetryLimit       int
@@ -45,20 +38,7 @@ func main() {
 	repo = os.Args[1]
 	branch = os.Args[2]
 
-	// Parse auth.yaml
-	authData, err := os.ReadFile("auth.yaml")
-	if err != nil {
-		fmt.Println("Error reading auth.yaml:", err)
-		os.Exit(1)
-	}
-	var auth Auth
-	err = yaml.Unmarshal(authData, &auth)
-	if err != nil {
-		fmt.Println("Error parsing auth.yaml:", err)
-		os.Exit(1)
-	}
-	token := auth.Auth.Token
-
+	token := getGHECToken()
 	// Parse config.yaml
 	configData, err := os.ReadFile("config.yaml")
 	if err != nil {
