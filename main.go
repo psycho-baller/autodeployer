@@ -83,6 +83,6 @@ func main() {
 	// waitForWorkflow(ctx, client)
 	newBranchRef := bumpDeployment(ctx, client, oldTag, newTag)
 	triggerWorkflow(ctx, client, newBranchRef, "deploy.yaml")
-	// Send notification
+
 	fmt.Println("Deployment Successful! Autodeployer terminating...")
 }
