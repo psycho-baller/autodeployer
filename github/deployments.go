@@ -53,13 +53,14 @@ func BumpDeployment(oldTag string, newTag string) string {
 	fmt.Println("- Reading commit hash of default branch...")
 	ref, _, err := Globals.Client.Git.GetRef(Globals.Ctx, Globals.Owner, Globals.DeploymentsRepo, "refs/heads/"+defaultBranch)
 	if err != nil {
-		fmt.Println("Failed to fetch master branch:", err)
+		fmt.Println("Failed to fetch default branch:", err)
 		os.Exit(1)
 	}
 	defaultBranchSHA := ref.Object.GetSHA()
 
 	// 2. Create new branch in deployment repo
-	newBranchNameRef := fmt.Sprintf("refs/heads/%s-bump", Globals.Repo)
+	futureTag := strings.Split(newTag, "-rc")[0]
+	newBranchNameRef := fmt.Sprintf("refs/heads/%s-bump-%s", Globals.Repo, futureTag)
 	newBranch := &github.Reference{
 		Ref:    &newBranchNameRef,
 		Object: &github.GitObject{SHA: &defaultBranchSHA},
