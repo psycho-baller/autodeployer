@@ -1,4 +1,4 @@
-module autodeployer
+module github.com/psycho-baller/autodeployer
 
 go 1.22.0
 
