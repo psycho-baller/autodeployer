@@ -99,12 +99,14 @@ func main() {
 	gh.CreateNewRelease(newTag)
 	newBranchRef := gh.BumpDeployment(oldTag, newTag)
 	// TODO: Add option to skip this step
+	fmt.Printf("[4/5] Triggering '%s' workflow on branch %s...\n", "deploy.yaml", newBranchRef)
 	gh.TriggerWorkflow(newBranchRef, "deploy.yaml")
 	// 3. Wait for the image build workflow to complete
 	// TODO: Add option to skip this step
 	announce(Notification, fmt.Sprintf("Deploying to %s", deploymentsRepo), fmt.Sprintf("Successfully triggered deployment workflow for %s in %s through %s", newTag, repo, deploymentsRepo))
 	// Waiting 5 seconds before checking the image build workflow...
 	time.Sleep(5 * time.Second)
+	fmt.Println("[5/5] Waiting for workflow completion...")
 	gh.WaitForWorkflow(deploymentsRepo, strings.Split(newBranchRef, "heads/")[1])
 	announce(Alert,fmt.Sprintf("%s branch in %s has been deployed through %s", branch, repo, deploymentsRepo),fmt.Sprintf("Old release tag: %s\nNew release tag: %s", oldTag, newTag))
 	fmt.Println("Deployment Successful! Autodeployer terminating...")

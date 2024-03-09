@@ -62,7 +62,7 @@ func WaitForWorkflow(repo string, branch string) {
 
 // bumps the image version in the deployment repository
 func BumpDeployment(oldTag string, newTag string) string {
-	fmt.Printf("[4/5] Bumping image version in %s...\n", Globals.DeploymentsRepo)
+	fmt.Printf("[3/5] Bumping image version in %s...\n", Globals.DeploymentsRepo)
 
 	// 0. Check if the deployment repo exists and get the default branch
 	deploymentsRepoGithub, _, err := Globals.Client.Repositories.Get(Globals.Ctx, Globals.Owner, Globals.DeploymentsRepo)
@@ -142,8 +142,6 @@ func BumpDeployment(oldTag string, newTag string) string {
 
 // triggers a workflow on the specified branch in the repository
 func TriggerWorkflow(branchNameRef string, workflowName string) {
-	fmt.Printf("[5/5] Triggering '%s' workflow on branch %s...\n", workflowName, branchNameRef)
-
 	// Prepare payload for workflow dispatch event
 	eventPayload := github.CreateWorkflowDispatchEventRequest{
 		Ref: branchNameRef,
