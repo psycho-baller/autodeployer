@@ -17,5 +17,5 @@
 # @raycast.authorURL https://ramimaalouf.tech
 
 on run {param1, param2}
-    do shell script "./autodeployer " & param1 & " " & param2
+    do shell script "./bin/autodeployer " & param1 & " " & param2
 end run
