@@ -114,9 +114,9 @@ func getLatestOfficialReleaseTag(repo string) (*github.RepositoryRelease, error)
 	}
 	for _, release := range releases {
 		fmt.Printf("Release: %s\n", release.GetTagName())
-			// if release.GetPrerelease() {
-			// 		continue
-			// }
+			if release.GetPrerelease() {
+					continue
+			}
 			return release, nil
 	}
 
@@ -152,22 +152,17 @@ func GetOldAndNewReleaseTag(versionChageType VersionChangeType) (string, string,
 		if err != nil {
 			fmt.Printf("Error when filtering tags by user: %s\nWill not filter out tags not created by you.\n", err)
 		} else {
-			fmt.Printf("Filtering tags by user: %t\n", len(tags) == len(filteredTagsByUser))
-
 			tags = filteredTagsByUser
 		}
 	}
-
 	// 2. get the latest tag from the branch
 	latestTagFromBranch, err := getLatestTagFromBranch(Globals.Branch, tags)
 	if err != nil {
 		fmt.Printf("Error when fetching latest tag: %s\n", err)
 		os.Exit(1)
 	}
-	for _, tag := range tags {
-		fmt.Printf("Tag: %s\n", tag.GetName())
-	}
-	oldTag := tags[0].GetName()
+
+	var oldTag string
 	isFirstRC := latestTagFromBranch == nil
 	if isFirstRC {
 		fmt.Println("No tags found for the branch. Assuming this is the first deployment attempt.")
@@ -177,6 +172,9 @@ func GetOldAndNewReleaseTag(versionChageType VersionChangeType) (string, string,
 			os.Exit(1)
 		}
 		oldTag = latestOfficialReleaseTag.GetTagName()
+	} else {
+		// there is an rc tag previously created, so we will use that as the old tag
+		oldTag = tags[0].GetName()
 	}
 	newTag, err := getNewTag(oldTag, versionChageType)
 	if err != nil {
