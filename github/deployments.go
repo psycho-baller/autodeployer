@@ -10,18 +10,41 @@ import (
 	"github.com/google/go-github/v39/github"
 )
 
+func filterWorkflowRunsByName(workflows []*github.WorkflowRun, name string) []*github.WorkflowRun {
+	var filteredWorkflows []*github.WorkflowRun
+	for _, workflow := range workflows {
+		if *workflow.Name == name {
+			filteredWorkflows = append(filteredWorkflows, workflow)
+		}
+	}
+	return filteredWorkflows
+}
 // waits for the image build workflow to complete
-func WaitForWorkflow() {
-	fmt.Println("[3/5] Waiting for workflow completion...")
+func WaitForWorkflow(repo string, branch string) {
+	// default values for parameters
+	if repo == "" {
+		repo = Globals.Repo
+	}
+	if branch == "" {
+		branch = Globals.Branch
+	}
+	fmt.Println("Waiting for workflow completion...")
 	workflowComplete := false
+	options := &github.ListWorkflowRunsOptions{Branch: branch}
 	for i := 0; i < Globals.WorkflowRetryLimit; i++ {
-		workflows, _, err := Globals.Client.Actions.ListRepositoryWorkflowRuns(Globals.Ctx, Globals.Owner, Globals.Repo, nil)
+		workflows, _, err := Globals.Client.Actions.ListRepositoryWorkflowRuns(Globals.Ctx, Globals.Owner, repo, options)
 		if err != nil {
 			fmt.Printf("Error when fetching workflows: %s\n", err)
 			os.Exit(1)
 		}
+		if len(workflows.WorkflowRuns) == 0 {
+			fmt.Printf("\rNo workflows found. Time elapsed: %ds", (i+1)*Globals.WorkflowRetryWaitSeconds)
+			time.Sleep(time.Duration(Globals.WorkflowRetryWaitSeconds) * time.Second)
+			continue
+		}
+		workflowRuns := filterWorkflowRunsByName(workflows.WorkflowRuns, "Deploy")
 
-		workflowStatus := workflows.WorkflowRuns[0].GetStatus()
+		workflowStatus := workflowRuns[0].GetStatus()
 		if workflowStatus == "completed" {
 			fmt.Println("\nWorkflow has successfully completed!")
 			workflowComplete = true

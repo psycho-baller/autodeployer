@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
@@ -95,9 +97,15 @@ func main() {
 	fmt.Println("Old release tag:", oldTag)
 	fmt.Println("New release tag:", newTag)
 	gh.CreateNewRelease(newTag)
-	// gh.WaitForWorkflow(ghCtx, client)
 	newBranchRef := gh.BumpDeployment(oldTag, newTag)
+	// TODO: Add option to skip this step
 	gh.TriggerWorkflow(newBranchRef, "deploy.yaml")
-
+	// 3. Wait for the image build workflow to complete
+	// TODO: Add option to skip this step
+	announce(Notification, fmt.Sprintf("Deploying to %s", deploymentsRepo), fmt.Sprintf("Successfully triggered deployment workflow for %s in %s through %s", newTag, repo, deploymentsRepo))
+	// Waiting 5 seconds before checking the image build workflow...
+	time.Sleep(5 * time.Second)
+	gh.WaitForWorkflow(deploymentsRepo, strings.Split(newBranchRef, "heads/")[1])
+	announce(Alert,fmt.Sprintf("%s branch in %s has been deployed through %s", branch, repo, deploymentsRepo),fmt.Sprintf("Old release tag: %s\nNew release tag: %s", oldTag, newTag))
 	fmt.Println("Deployment Successful! Autodeployer terminating...")
 }

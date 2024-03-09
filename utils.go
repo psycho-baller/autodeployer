@@ -30,3 +30,30 @@ func getGHECToken() string {
 	token := strings.TrimSpace(string(output))
 	return token
 }
+
+type NotificationType string
+
+const (
+    Alert        NotificationType = "alert"
+    Notification NotificationType = "notification"
+		Dialog       NotificationType = "dialog"
+)
+func announce(notificationType NotificationType, title, message string) {
+	var script string
+	switch notificationType {
+		case Alert:
+			script = fmt.Sprintf(`display alert "%s" message "%s" as informational giving up after 15`, title, message)
+		case Notification:
+			script = fmt.Sprintf(`tell app "System Events" to display notification "%s" with title "%s"`, message, title)
+		case Dialog:
+			script = `display dialog "Hello" with icon success buttons {"OK"} default button "OK"`
+		default:
+			fmt.Println("Invalid notification type:", notificationType)
+			return
+	}
+	cmd := exec.Command("osascript", "-e", script)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("Error displaying notification:", err)
+	}
+}
