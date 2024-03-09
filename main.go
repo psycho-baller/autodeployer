@@ -31,6 +31,7 @@ var (
 	isPrerelease             bool = true
 	repo                     string
 	branch                   string
+	userDefinedOldTag        string
 )
 
 func main() {
@@ -56,6 +57,10 @@ func main() {
 	}
 	repo = os.Args[1]
 	branch = os.Args[2]
+	// Check if the user has provided a new tag
+	if len(os.Args) > 3 {
+		userDefinedOldTag = os.Args[3]
+	}
 	owner = config.Settings["owner"]
 	workflowRetryLimit, _ = strconv.Atoi(config.Settings["workflow_retry_limit"])
 	workflowRetryWaitSeconds, _ = strconv.Atoi(config.Settings["workflow_retry_wait_seconds"])
@@ -78,6 +83,7 @@ func main() {
     Owner:                    owner,
     Repo:                     repo,
     Branch:                   branch,
+		UserDefinedOldTag:        userDefinedOldTag,
     DeploymentsRepo:          deploymentsRepo,
     DeploymentYAMLPath:       deploymentYAMLPath,
     WorkflowRetryLimit:       workflowRetryLimit,

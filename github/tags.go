@@ -123,13 +123,7 @@ func getLatestOfficialReleaseTag(repo string) (*github.RepositoryRelease, error)
 	return nil, fmt.Errorf("no non-pre-release found for repository %s/%s", Globals.Owner, repo)
 }
 
-// getNewReleaseTag determines the new release tag
-func GetOldAndNewReleaseTag(versionChageType VersionChangeType) (string, string, error) {
-	// 0. set default params if not provided
-	if versionChageType == "" {
-		versionChageType = Minor
-	}
-	
+func getOldTag() string {
 	// 1. get the tags and apply filters to them for more accurate results
 	fmt.Println("\n[1/5] Determining new release tag...")
 	options := &github.ListOptions{}
@@ -162,7 +156,6 @@ func GetOldAndNewReleaseTag(versionChageType VersionChangeType) (string, string,
 		os.Exit(1)
 	}
 
-	var oldTag string
 	isFirstRC := latestTagFromBranch == nil
 	if isFirstRC {
 		fmt.Println("No tags found for the branch. Assuming this is the first deployment attempt.")
@@ -171,11 +164,24 @@ func GetOldAndNewReleaseTag(versionChageType VersionChangeType) (string, string,
 			fmt.Printf("Error when fetching latest official release tag: %s\n", err)
 			os.Exit(1)
 		}
-		oldTag = latestOfficialReleaseTag.GetTagName()
+		return latestOfficialReleaseTag.GetTagName()
 	} else {
 		// there is an rc tag previously created, so we will use that as the old tag
-		oldTag = tags[0].GetName()
+		return tags[0].GetName()
 	}
+}
+
+// getNewReleaseTag determines the new release tag
+func GetOldAndNewReleaseTag(versionChageType VersionChangeType) (string, string, error) {
+	// 0. set default params if not provided
+	if versionChageType == "" {
+		versionChageType = Minor
+	}
+	oldTag := Globals.UserDefinedOldTag
+	if oldTag == "" {
+		oldTag = getOldTag()
+	}
+
 	newTag, err := getNewTag(oldTag, versionChageType)
 	if err != nil {
 		return oldTag, "", err
