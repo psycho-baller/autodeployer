@@ -10,8 +10,9 @@ type AppContext struct {
 	Owner                    string
 	Repo                     string
 	Branch                   string
+	UserDefinedOldTag        string
 	DeploymentsRepo          string
-	DeploymentYAMLPath			 string
+	DeploymentYAMLPath		 string
 	WorkflowRetryLimit       int
 	WorkflowRetryWaitSeconds int
 	ConfigImageURL           string
