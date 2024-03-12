@@ -21,12 +21,12 @@ on run argv
     if (count of argv) = 2 then
         set repo to item 1 of argv
         set branch to item 2 of argv
-        do shell script "./bin/autodeployer " & repo & " " & branch
+        do shell script "./bin/ad " & repo & " " & branch
     else if (count of argv) = 3 then
         set repo to item 1 of argv
         set branch to item 2 of argv
         set oldTag to item 3 of argv
-        do shell script "./bin/autodeployer " & repo & " " & branch & " " & oldTag
+        do shell script "./bin/ad " & repo & " " & branch & " " & oldTag
     else
         display dialog "Invalid number of arguments. Please provide 2 or 3 arguments."
     end if
