@@ -45,3 +45,10 @@ go build -o bin/autodeployer github.com/psycho-baller/autodeployer`
 - It assumes that you do not manually create tags for the release candidates without updating the deployment repo. Always make sure that the deployment repo is up to date with the latest rc tag created
 - It assumes you have 1password set up and have the `GHEC_TOKEN` saved in there
 
+
+## Future improvements
+
+- Tell the user if the deployment failed (easy, semi-quick)
+- Add support for making major and patch bumps to the version (easy, quick)
+- Handling the case where a certain repo has different files that need to be bumped (like flo) (medium, not so quick)
+- How the hell do I make this work for portals?
