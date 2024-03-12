@@ -31,15 +31,28 @@ var (
 	isPrerelease             bool = true
 	repo                     string
 	branch                   string
+	userDefinedOldTag        string
 )
 
 func main() {
 	// Parse arguments
 	if len(os.Args) <= 2 {
-		fmt.Println("Usage: go run github.com/psycho-baller/autodeployer <REPO_NAME> <BRANCH_NAME>")
-		os.Exit(1)
+		// check if they have an environment variable set
+		if os.Getenv("AD_REPO") != "" && os.Getenv("AD_BRANCH") != "" {
+			repo = os.Getenv("AD_REPO")
+			branch = os.Getenv("AD_BRANCH")
+		} else {
+			fmt.Println("Usage: go run github.com/psycho-baller/autodeployer <REPO_NAME> <BRANCH_NAME>")
+			os.Exit(1)
+		}
+	} else {
+		repo = os.Args[1]
+		branch = os.Args[2]
 	}
-	
+	if len(os.Args) > 3 {
+		userDefinedOldTag = os.Args[3]
+	}
+
 	token := getGHECToken()
 	
 	// Parse config.yaml
@@ -54,8 +67,6 @@ func main() {
 		fmt.Println("Error parsing config.yaml:", err)
 		os.Exit(1)
 	}
-	repo = os.Args[1]
-	branch = os.Args[2]
 	owner = config.Settings["owner"]
 	workflowRetryLimit, _ = strconv.Atoi(config.Settings["workflow_retry_limit"])
 	workflowRetryWaitSeconds, _ = strconv.Atoi(config.Settings["workflow_retry_wait_seconds"])
@@ -78,6 +89,7 @@ func main() {
     Owner:                    owner,
     Repo:                     repo,
     Branch:                   branch,
+	UserDefinedOldTag:        userDefinedOldTag,
     DeploymentsRepo:          deploymentsRepo,
     DeploymentYAMLPath:       deploymentYAMLPath,
     WorkflowRetryLimit:       workflowRetryLimit,
@@ -99,8 +111,15 @@ func main() {
 	gh.CreateNewRelease(newTag)
 	newBranchRef := gh.BumpDeployment(oldTag, newTag)
 	// TODO: Add option to skip this step
-	fmt.Printf("[4/5] Triggering '%s' workflow on branch %s...\n", "deploy.yaml", newBranchRef)
-	gh.TriggerWorkflow(newBranchRef, "deploy.yaml")
+	deploymentYAMLPath = config.DeploymentRepos[deploymentsRepo][repo]["staging-config-path"]
+	var workflowName string
+	if deploymentsRepo == "apps-faculty-deploy" {
+		workflowName = "deploy.yml"
+	} else {
+		workflowName = "deploy.yaml"
+	}
+	fmt.Printf("[4/5] Triggering '%s' workflow on branch %s...\n", workflowName, newBranchRef)
+	gh.TriggerWorkflow(newBranchRef, workflowName)
 	// 3. Wait for the image build workflow to complete
 	// TODO: Add option to skip this step
 	announce(Notification, fmt.Sprintf("Deploying to %s", deploymentsRepo), fmt.Sprintf("Successfully triggered deployment workflow for %s in %s through %s", newTag, repo, deploymentsRepo))
