@@ -7,7 +7,7 @@
 
 # Optional parameters:
 # @raycast.packageName autodeployer
-# @raycast.icon assets/rocket.png
+# @raycast.icon ../assets/rocket.png
 # @raycast.argument1 { "type": "text", "placeholder": "repository" }
 # @raycast.argument2 { "type": "text", "placeholder": "branch" }
 # @raycast.argument3 { "type": "text", "placeholder": "old tag", optional: true }
