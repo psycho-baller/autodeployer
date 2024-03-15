@@ -14,4 +14,4 @@
 # @raycast.author Rami Maalouf
 # @raycast.authorURL https://ramimaalouf.tech
 
-do shell script "./bin/ad"
+do shell script "./bin/autodeployer"
