@@ -89,7 +89,7 @@ func BumpDeployment(oldTag string, newTag string) string {
 		fmt.Println("Failed to get username, will use '' as the username for the new deployment branch")
 		username = ""
 	}
-	newBranchNameRef := fmt.Sprintf("refs/heads/%s-%s-bump-%s", username, Globals.Repo, futureTag)
+	newBranchNameRef := fmt.Sprintf("refs/heads/%s-%s-%s-bump-%s", username, Globals.Repo, Globals.Branch, futureTag)
 	newBranch := &github.Reference{
 		Ref:    &newBranchNameRef,
 		Object: &github.GitObject{SHA: &defaultBranchSHA},
