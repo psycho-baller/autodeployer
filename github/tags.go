@@ -139,11 +139,10 @@ func getLatestOfficialReleaseTag(repo string) (*github.RepositoryRelease, error)
 			return nil, fmt.Errorf("error fetching releases: %w", err)
 	}
 	for _, release := range releases {
-		fmt.Printf("Release: %s\n", release.GetTagName())
-			if release.GetPrerelease() {
-					continue
-			}
-			return release, nil
+		if release.GetPrerelease() {
+				continue
+		}
+		return release, nil
 	}
 
 	return nil, fmt.Errorf("no non-pre-release found for repository %s/%s", Globals.Owner, repo)
