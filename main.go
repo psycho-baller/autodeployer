@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v39/github"
+	gh "github.com/psycho-baller/autodeployer/github"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v2"
-
-	gh "github.com/psycho-baller/autodeployer/github"
 )
 
 // Configuration struct for holding settings from config.yaml
@@ -54,9 +54,23 @@ func main() {
 	}
 
 	token := getGHECToken()
-	
+
 	// Parse config.yaml
-	configData, err := os.ReadFile("config.yaml")
+	wd, err := os.Getwd()
+    if err != nil {
+        panic(err)
+    }
+	fmt.Println(wd)
+    var configPath string
+	if strings.Contains(wd, "bin") {
+		// If you're running the binary from the bin directory
+		configPath = filepath.Join(filepath.Dir(wd), "config.yaml")
+	} else {
+		// If you're running the go file directly
+		configPath = filepath.Join(wd, "config.yaml")
+	}
+
+    configData, err := os.ReadFile(configPath)
 	if err != nil {
 		fmt.Println("Error reading config.yaml:", err)
 		os.Exit(1)
