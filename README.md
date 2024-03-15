@@ -10,28 +10,62 @@ When you run the script, it will take ~5 seconds to create the releases and crea
 
 ## How to use
 
+### Prerequisites
+
+There are no required prerequisites but if you would like to not specify the repository and branch every time you run the script, you can set the `AD_REPO` and `AD_BRANCH` environment variables to the repository and branch you want to deploy. By default, the script will use the `AD_REPO` and `AD_BRANCH` environment variables if they are set, otherwise it will expect you to provide the repository and branch as arguments. You can set the environment variables by adding the following lines to your `.zshrc` or `.bashrc` file:
+
+```text
+export AD_REPO=<repository>
+export AD_BRANCH=<branch>
+```
+
 There are 4 ways to use this script:
 
-1. Add `raycast.applescript` to your raycast scripts folder and run it from there. Don't forget to set up an alias for the script for easy access. I have it as `ad`, so to run the script, I just have to type `ad` to raycast, then the repository and the branch I want to deploy.
+### 1. Raycast:
 
-2. Run the apple script:
+![alt text](assets/raycast-script-demo.png)
+
+As shown in the image above, go to your raycast extensions settings. In there, go to the scripts tab and add a new script directory.
+
+Once you have added the script directory of this repository, you should be able to see the autodeployer scripts in the raycast menu. One being the script that takes arguments and the other being the script that doesn't take any arguments. Don't forget to make aliases and hotkeys to make it easier to run the script!
+
+### 2. Apple script:
+
+Run the apple script:
 ```bash
-osascript raycast.applescript <repository> <branch>
+osascript scripts/raycast.applescript <repository> <branch>
 ```
-prerequisites: a mac
 
-3. Run the autodeployer module:
+you can also run the applescript that doesn't need any arguments:
+```bash
+osascript scripts/raycast_noargs.applescript
+```
+
+### 3. Go run:
+
+Run the autodeployer module:
 ```bash
 go run github.com/psycho-baller/autodeployer <repository> <branch>
 ```
-prerequisites: go installed
 
-4. Run the autodeployer binary:
+### 4. Binary/Executable:
+
+Run the autodeployer binary:
 ```bash
 ./bin/autodeployer
 ```
-prerequisites: nothing, but if you want to rebuild the binary yourself, you will need go installed.
-After installing go, you can rebuild the binary by running
+
+If you want to be able to run this script from anywhere, you can make an alias for the script in your `.zshrc` or `.bashrc` file:
+
+```text
+alias ad="$HOME/path-to-repository/autodeployer/bin/autodeployer"
+```
+now you can run the script from anywhere by typing `ad` in your terminal.
+
+#### Building the binary
+
+If you want to update the binary, you can build it by running the following command:
+
 ```bash
 go build -o bin/autodeployer github.com/psycho-baller/autodeployer`
 ```
@@ -43,7 +77,7 @@ go build -o bin/autodeployer github.com/psycho-baller/autodeployer`
 - It also assumes that you are making a minor bump to the version
   - Example: Currently latest version of some branch is `1.2.3`, default behavior will be to make `1.2.4-rc*` if you want to make `1.3.0-rc*` or `2.0.0-rc*`, you will need to modify the default behavior
 - It assumes that you do not manually create tags for the release candidates without updating the deployment repo. Always make sure that the deployment repo is up to date with the latest rc tag created
-- It assumes you have 1password set up and have the `GHEC_TOKEN` saved in there
+- It assumes you have 1password set up and have the `GHEC_TOKEN` saved in your private vault
 
 
 ## Future improvements
