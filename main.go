@@ -109,6 +109,8 @@ func main() {
 	fmt.Println("Old release tag:", oldTag)
 	fmt.Println("New release tag:", newTag)
 	gh.CreateNewRelease(newTag)
+	fmt.Println("Waiting for image build workflow to complete...")
+	gh.WaitForWorkflow(repo, branch)
 	newBranchRef := gh.BumpDeployment(oldTag, newTag)
 	// TODO: Add option to skip this step
 	deploymentYAMLPath = config.DeploymentRepos[deploymentsRepo][repo]["staging-config-path"]
@@ -125,7 +127,7 @@ func main() {
 	announce(Notification, fmt.Sprintf("Deploying to %s", deploymentsRepo), fmt.Sprintf("Successfully triggered deployment workflow for %s in %s through %s", newTag, repo, deploymentsRepo))
 	// Waiting 5 seconds before checking the image build workflow...
 	time.Sleep(5 * time.Second)
-	fmt.Println("[5/5] Waiting for workflow completion...")
+	fmt.Println("[5/5] Waiting for deployment workflow to complete...")
 	gh.WaitForWorkflow(deploymentsRepo, strings.Split(newBranchRef, "heads/")[1])
 	announce(Alert,fmt.Sprintf("%s branch in %s has been deployed through %s", branch, repo, deploymentsRepo),fmt.Sprintf("Old release tag: %s\nNew release tag: %s", oldTag, newTag))
 	fmt.Println("Deployment Successful! Autodeployer terminating...")
